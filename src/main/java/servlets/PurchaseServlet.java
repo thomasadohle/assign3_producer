@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import models.Purchase;
 import models.PurchaseItem;
 import org.json.JSONObject;
+import persistence.PurchasePersistor;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -62,7 +63,16 @@ public class PurchaseServlet extends HttpServlet {
     }
 
     private void persistPurchase(Purchase p){
-        // Saving for later
+        boolean persistPurchaseSuccessful = false;
+        boolean persistPurchaseItemsSuccessful = false;
+        PurchasePersistor persistor = new PurchasePersistor(p);
+        persistPurchaseSuccessful = persistor.persistPurchase();
+        if (persistPurchaseSuccessful){
+            persistPurchaseItemsSuccessful = persistor.persistPurchaseItems();
+        }
+        if (persistPurchaseSuccessful && persistPurchaseItemsSuccessful){
+            this.persistanceSuccessful = true;
+        }
     }
 
     private Purchase processRequest(HttpServletRequest request) throws IOException {
