@@ -12,10 +12,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
+
 
 public class PurchaseServlet extends HttpServlet {
 
@@ -50,7 +52,12 @@ public class PurchaseServlet extends HttpServlet {
             out.println(responseMessage);
             return;
         }
-        persistPurchase(purchase);
+        try{
+            persistPurchase(purchase);
+        } catch (SQLException e){
+            e.printStackTrace();
+        }
+
         if (! this.persistanceSuccessful){
             //Persistence failed. Return 500.
             response.setStatus(500);
@@ -62,17 +69,18 @@ public class PurchaseServlet extends HttpServlet {
         out.println(responseMessage);
     }
 
-    private void persistPurchase(Purchase p){
+    private void persistPurchase(Purchase p) throws SQLException {
         boolean persistPurchaseSuccessful = false;
         boolean persistPurchaseItemsSuccessful = false;
         PurchasePersistor persistor = new PurchasePersistor(p);
         persistPurchaseSuccessful = persistor.persistPurchase();
         if (persistPurchaseSuccessful){
-            persistPurchaseItemsSuccessful = persistor.persistPurchaseItems();
-        }
-        if (persistPurchaseSuccessful && persistPurchaseItemsSuccessful){
             this.persistanceSuccessful = true;
+//            persistPurchaseItemsSuccessful = persistor.persistPurchaseItems();
         }
+//        if (persistPurchaseSuccessful && persistPurchaseItemsSuccessful){
+//            this.persistanceSuccessful = true;
+//        }
     }
 
     private Purchase processRequest(HttpServletRequest request) throws IOException {
