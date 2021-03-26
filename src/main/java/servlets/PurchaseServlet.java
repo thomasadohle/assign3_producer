@@ -75,12 +75,11 @@ public class PurchaseServlet extends HttpServlet {
         PurchasePersistor persistor = new PurchasePersistor(p);
         persistPurchaseSuccessful = persistor.persistPurchase();
         if (persistPurchaseSuccessful){
-            this.persistanceSuccessful = true;
-//            persistPurchaseItemsSuccessful = persistor.persistPurchaseItems();
+            persistPurchaseItemsSuccessful = persistor.persistPurchaseItems();
         }
-//        if (persistPurchaseSuccessful && persistPurchaseItemsSuccessful){
-//            this.persistanceSuccessful = true;
-//        }
+        if (persistPurchaseSuccessful && persistPurchaseItemsSuccessful){
+            this.persistanceSuccessful = true;
+        }
     }
 
     private Purchase processRequest(HttpServletRequest request) throws IOException {
