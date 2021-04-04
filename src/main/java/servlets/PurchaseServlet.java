@@ -1,10 +1,12 @@
 package servlets;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import models.Purchase;
 import models.PurchaseItem;
 import org.json.JSONObject;
-import persistence.PurchasePersistor;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -17,19 +19,42 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 
 public class PurchaseServlet extends HttpServlet {
 
     private boolean requestValid = false;
     private boolean persistanceSuccessful = false;
+    private ConnectionFactory factory;
+    private Connection connection;
+    private Channel channel;
 
     public void init() throws ServletException {
         // Initialization
+        factory = new ConnectionFactory();
+        try{
+            connection = factory.newConnection();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void destroy() {
-        //Tear Down
+        if (connection != null){
+            try {
+                connection.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (channel != null){
+            try {
+                channel.close();
+            } catch (IOException| TimeoutException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -53,8 +78,8 @@ public class PurchaseServlet extends HttpServlet {
             return;
         }
         try{
-            persistPurchase(purchase);
-        } catch (SQLException e){
+            writeMessage(purchase);
+        } catch (Exception e){
             e.printStackTrace();
         }
 
@@ -65,20 +90,20 @@ public class PurchaseServlet extends HttpServlet {
             out.println(responseMessage);
             return;
         }
+        // Everything worked
         responseMessage = jsonString.put("message", "Valid request!").toString();
         out.println(responseMessage);
     }
 
-    private void persistPurchase(Purchase p) throws SQLException {
-        boolean persistPurchaseSuccessful = false;
-        boolean persistPurchaseItemsSuccessful = false;
-        PurchasePersistor persistor = new PurchasePersistor(p);
-        persistPurchaseSuccessful = persistor.persistPurchase();
-        if (persistPurchaseSuccessful){
-            persistPurchaseItemsSuccessful = persistor.persistPurchaseItems();
-        }
-        if (persistPurchaseSuccessful && persistPurchaseItemsSuccessful){
+    private void writeMessage(Purchase p) {
+        ObjectMapper mapper = new ObjectMapper();
+        try{
+            channel = connection.createChannel();
+            channel.exchangeDeclare("purchase", "fanout");
+            channel.basicPublish("purchase","",null,mapper.writeValueAsBytes(p));
             this.persistanceSuccessful = true;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -97,7 +122,7 @@ public class PurchaseServlet extends HttpServlet {
             purchase.setCustomerId(Integer.parseInt(urlParams.get("customerId")));
             purchase.setStoreId(Integer.parseInt(urlParams.get("storeId")));
             for (PurchaseItem item: purchase.getItems()){
-                item.setPurchase(purchase);
+                //item.setPurchase(purchase);
             }
         } catch(Exception e){
             this.requestValid = false;
