@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
 public class PurchaseServlet extends HttpServlet {
 
     private boolean requestValid = false;
-    private boolean persistanceSuccessful = false;
+    private boolean messageWriteSuccessful = false;
     private ConnectionFactory factory;
     private Connection connection;
     private Channel channel;
@@ -83,7 +83,7 @@ public class PurchaseServlet extends HttpServlet {
             e.printStackTrace();
         }
 
-        if (! this.persistanceSuccessful){
+        if (! this.messageWriteSuccessful){
             //Persistence failed. Return 500.
             response.setStatus(500);
             responseMessage = jsonString.put("message", "Persistence failed").toString();
@@ -101,7 +101,7 @@ public class PurchaseServlet extends HttpServlet {
             channel = connection.createChannel();
             channel.exchangeDeclare("purchase", "fanout");
             channel.basicPublish("purchase","",null,mapper.writeValueAsBytes(p));
-            this.persistanceSuccessful = true;
+            this.messageWriteSuccessful = true;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -121,9 +121,6 @@ public class PurchaseServlet extends HttpServlet {
             purchase.setDate(urlParams.get("date"));
             purchase.setCustomerId(Integer.parseInt(urlParams.get("customerId")));
             purchase.setStoreId(Integer.parseInt(urlParams.get("storeId")));
-            for (PurchaseItem item: purchase.getItems()){
-                //item.setPurchase(purchase);
-            }
         } catch(Exception e){
             this.requestValid = false;
             return null;
